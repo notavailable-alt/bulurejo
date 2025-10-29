@@ -6,6 +6,9 @@
     <title>Portal UMKM Digital - Bulurejo Monggol</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="manifest" href="manifest.json">
     <style>
         /* === VARIABLES & RESET === */
         :root {
@@ -321,6 +324,68 @@
             cursor: pointer;
         }
 
+        /* === LOGIN/REGISTER MODAL === */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .auth-modal-content {
+            background-color: var(--card-bg);
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            color: var(--text);
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            background: var(--border);
+            border: none;
+            cursor: pointer;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .auth-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text);
+        }
+
+        .auth-form button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
         .language-selector select option {
             color: #333;
         }
@@ -590,7 +655,7 @@
             margin-top: 1rem;
         }
 
-        .btn-detail, .btn-wa, .btn-ig, .btn-review {
+        .btn-detail, .btn-wa, .btn-ig, .btn-review, .btn-cart {
             padding: 8px 16px;
             border: none;
             border-radius: 6px;
@@ -601,6 +666,15 @@
             transition: all 0.3s;
             font-size: 0.9rem;
             cursor: pointer;
+        }
+
+        .btn-cart {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-cart:hover {
+            background: #F57C00;
         }
 
         .btn-detail {
@@ -1299,21 +1373,791 @@
             transform: scale(1.05);
         }
 
-        /* === MAP SECTION === */
-        .map-container {
+        /* === WHATSAPP BUSINESS INTEGRATION STYLES === */
+        .whatsapp-templates {
             margin: 2rem 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            border-radius: 15px;
+            color: white;
         }
 
-        .simple-map {
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .template-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .template-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .template-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .template-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .template-actions {
+            display: flex;
+            gap: 0.5rem;
             margin-top: 1rem;
+        }
+
+        .btn-whatsapp {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            text-decoration: none;
+            display: inline-block;
             text-align: center;
         }
 
-        .simple-map img {
-            width: 100%;
-            max-width: 400px;
+        .btn-whatsapp:hover {
+            background: #128C7E;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.4);
+        }
+
+        .btn-customize {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .btn-customize:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .whatsapp-custom-modal {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .whatsapp-custom-content {
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 95%;
+            color: white;
+        }
+
+        .custom-message-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .custom-message-form textarea {
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
-            border: 2px solid var(--border);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .custom-message-form textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .custom-message-form textarea:focus {
+            outline: none;
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .message-preview {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .message-preview h4 {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .message-preview p {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            opacity: 0.9;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .template-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* === ANALYTICS DASHBOARD STYLES === */
+        .analytics-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .analytics-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .analytics-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .analytics-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .analytics-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .analytics-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .analytics-chart-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .analytics-chart-container h3 {
+            margin-bottom: 1rem;
+            text-align: center;
+            color: #fff;
+        }
+
+        /* === NOTIFICATION SYSTEM STYLES === */
+        .notification-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 350px;
+            max-height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+
+        .notification-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .notification-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notification-item.unread {
+            background: #e3f2fd;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: #333;
+        }
+
+        .notification-message {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+
+        .notification-time {
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .analytics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .notification-panel {
+                width: calc(100vw - 40px);
+                right: 20px;
+                left: 20px;
+            }
+        }
+
+        /* === BOOKING SYSTEM STYLES === */
+        .booking-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+        }
+
+        .booking-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .booking-form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .booking-form-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .booking-form-group input,
+        .booking-form-group select,
+        .booking-form-group textarea {
+            padding: 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .booking-form-group input::placeholder,
+        .booking-form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .booking-form-group input:focus,
+        .booking-form-group select:focus,
+        .booking-form-group textarea:focus {
+            outline: none;
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .calendar-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-nav {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+
+        .calendar-nav:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .calendar-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            padding: 0.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .calendar-day.selected {
+            background: #fff;
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .calendar-day.today {
+            background: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+        }
+
+        .calendar-day.disabled {
+            color: rgba(255, 255, 255, 0.4);
+            cursor: not-allowed;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .time-slot {
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .time-slot:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .time-slot.selected {
+            background: #fff;
+            color: #667eea;
+            border-color: #fff;
+            font-weight: 600;
+        }
+
+        .time-slot.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .booking-summary {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .booking-summary h3 {
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .btn-booking {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .btn-booking:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-booking:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .booking-form {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .calendar-container {
+                padding: 1rem;
+            }
+
+            .time-slots {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* === LIGHTBOX STYLES === */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .lightbox-image {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .lightbox-nav:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .lightbox-prev {
+            left: -70px;
+        }
+
+        .lightbox-next {
+            right: -70px;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -60px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .lightbox-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .lightbox-counter {
+            position: absolute;
+            bottom: -40px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .lightbox-thumbnails {
+            position: absolute;
+            bottom: -120px;
+            display: flex;
+            gap: 10px;
+            max-width: 90vw;
+            overflow-x: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+
+        .lightbox-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .lightbox-thumbnail.active {
+            opacity: 1;
+            border-color: var(--primary-color);
+        }
+
+        .lightbox-thumbnail:hover {
+            opacity: 0.8;
+        }
+
+        /* Mobile lightbox adjustments */
+        @media (max-width: 768px) {
+            .lightbox-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 1.5rem;
+            }
+
+            .lightbox-prev {
+                left: -50px;
+            }
+
+            .lightbox-next {
+                right: -50px;
+            }
+
+            .lightbox-close {
+                top: -50px;
+                width: 40px;
+                height: 40px;
+                font-size: 1.5rem;
+            }
+
+            .lightbox-thumbnails {
+                bottom: -100px;
+            }
+
+            .lightbox-thumbnail {
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        /* === MAP SECTION === */
+        .map-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #umkmMap {
+            height: 400px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+
+        /* Map Legend Styles */
+        .map-legend {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .map-legend h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #2E7D32;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        /* UMKM Marker Styles */
+        .umkm-marker {
+            border: none !important;
+            background: none !important;
         }
 
         /* === BOOKING SECTION === */
@@ -1333,6 +2177,7 @@
         }
 
         .booking-form input,
+        .booking-form select,
         .booking-form textarea {
             padding: 10px;
             border: 1px solid var(--border);
@@ -1353,6 +2198,39 @@
 
         .booking-form button:hover {
             background: var(--primary-dark);
+        }
+
+        .calendar-booking {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--background);
+            border-radius: 8px;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .time-slot {
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .time-slot:hover {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .time-slot.selected {
+            background: var(--primary-color);
+            color: white;
         }
 
         /* === REVIEW FORM === */
@@ -1384,6 +2262,237 @@
 
         .review-star.active {
             color: #FFD700;
+        }
+
+        /* === CART & CHECKOUT === */
+        .cart-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .cart-modal-content {
+            background-color: var(--card-bg);
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            color: var(--text);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .cart-total {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            text-align: right;
+        }
+
+        .checkout-form {
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .checkout-form.active {
+            display: block;
+        }
+
+        .checkout-form input, .checkout-form select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--card-bg);
+            color: var(--text);
+        }
+
+        /* === PAYMENT GATEWAY STYLES === */
+        .payment-gateways {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+        }
+
+        .payment-gateway-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .payment-gateway-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .payment-gateway-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .payment-gateway-card.selected {
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .payment-gateway-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .payment-gateway-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .payment-gateway-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+        }
+
+        .payment-gateway-features {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            text-align: left;
+        }
+
+        .payment-gateway-features ul {
+            list-style: none;
+            padding: 0;
+            margin: 0.5rem 0 0 0;
+        }
+
+        .payment-gateway-features li {
+            margin-bottom: 0.25rem;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .payment-gateway-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4CAF50;
+        }
+
+        .payment-summary {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .payment-summary h3 {
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .payment-summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .payment-summary-item:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .btn-payment {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .btn-payment:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-payment:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .payment-status {
+            text-align: center;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 12px;
+            margin: 2rem 0;
+            display: none;
+        }
+
+        .payment-status.success {
+            border-left: 4px solid #4CAF50;
+            display: block;
+        }
+
+        .payment-status.error {
+            border-left: 4px solid #f44336;
+            display: block;
+        }
+
+        .payment-status-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .payment-status.success .payment-status-icon {
+            color: #4CAF50;
+        }
+
+        .payment-status.error .payment-status-icon {
+            color: #f44336;
         }
 
         /* === RESPONSIVE DESIGN === */
@@ -1526,6 +2635,8 @@
                     <button class="dark-mode-toggle" onclick="toggleDarkMode()">
                         🌙 Dark
                     </button>
+                    <button onclick="openCartModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 20px; cursor: pointer;">🛒 Keranjang</button>
+                    <button onclick="openAuthModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 20px; cursor: pointer;">Login</button>
                     <div class="notification-bell" onclick="toggleNotifications()">
                         🔔 <span class="notification-count">3</span>
                     </div>
@@ -1886,6 +2997,7 @@
                             <button onclick="shareProduct('Sewa Tenda & Sound Jaya')">📤 Bagikan</button>
                         </div>
                         <div class="toko-actions">
+                            <button class="btn-cart" onclick="addToCart('Sewa Tenda & Sound Jaya', '500000')">Tambah ke Keranjang</button>
                             <button class="btn-detail" onclick="showTokoDetail('tenda')">Lihat Detail</button>
                             <button class="btn-wa" onclick="smartWA('tenda', 'Sewa Tenda & Sound')">Chat WA</button>
                         </div>
@@ -1961,7 +3073,392 @@
         </div>
     </div>
 
+    <!-- === WHATSAPP BUSINESS MODAL === -->
+    <div id="whatsappModal" class="modal whatsapp-custom-modal">
+        <div class="modal-content whatsapp-custom-content">
+            <span class="close" onclick="closeWhatsappModal()">&times;</span>
+            <h2>Kirim Pesan WhatsApp</h2>
+            <div class="custom-message-form">
+                <textarea id="customMessage" placeholder="Ketik pesan Anda di sini..." rows="6">Halo! Saya tertarik dengan produk/layanan Anda. Bisa beri informasi lebih detail?</textarea>
+                <div class="message-preview">
+                    <h4>Preview Pesan:</h4>
+                    <p id="messagePreview">Halo! Saya tertarik dengan produk/layanan Anda. Bisa beri informasi lebih detail?</p>
+                </div>
+                <div class="template-actions">
+                    <button class="btn-whatsapp" onclick="sendCustomWhatsapp()">Kirim WhatsApp</button>
+                    <button class="btn-customize" onclick="closeWhatsappModal()">Batal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === BOOKING MODAL === -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content booking-modal-content">
+            <span class="close" onclick="closeBookingModal()">&times;</span>
+            <h2 id="bookingTitle">Pesan Layanan</h2>
+            <div id="bookingContent">
+                <!-- Booking form will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- === LIGHTBOX MODAL === -->
+    <div id="lightbox" class="lightbox">
+        <div class="lightbox-content">
+            <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+            <button class="lightbox-nav lightbox-prev" onclick="prevImage()">&#10094;</button>
+            <img id="lightboxImage" class="lightbox-image" src="" alt="">
+            <button class="lightbox-nav lightbox-next" onclick="nextImage()">&#10095;</button>
+            <div id="lightboxCounter" class="lightbox-counter">1 / 1</div>
+            <div id="lightboxThumbnails" class="lightbox-thumbnails">
+                <!-- Thumbnails will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- === AUTH MODAL === -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="close" onclick="closeAuthModal()" style="float: right; font-size: 28px; cursor: pointer;">&times;</span>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')">Daftar</button>
+            </div>
+            <div id="loginForm" class="auth-form">
+                <input type="email" placeholder="Email" id="loginEmail">
+                <input type="password" placeholder="Password" id="loginPassword">
+                <button onclick="loginUser()">Login</button>
+            </div>
+            <div id="registerForm" class="auth-form" style="display: none;">
+                <input type="text" placeholder="Nama UMKM" id="regName">
+                <input type="email" placeholder="Email" id="regEmail">
+                <input type="password" placeholder="Password" id="regPassword">
+                <input type="text" placeholder="Kategori (Jasa/Kayu/Kesenian)" id="regCategory">
+                <button onclick="registerUser()">Daftar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- === CART MODAL === -->
+    <div id="cartModal" class="cart-modal">
+        <div class="cart-modal-content">
+            <span class="close" onclick="closeCartModal()" style="float: right; font-size: 28px; cursor: pointer;">&times;</span>
+            <h2>🛒 Keranjang Belanja</h2>
+            <div id="cartItems"></div>
+            <div class="cart-total" id="cartTotal">Total: Rp 0</div>
+            <div class="toko-actions" style="margin-top: 1rem;">
+                <button class="btn-detail" onclick="closeCartModal()">Lanjut Belanja</button>
+                <button class="btn-wa" onclick="proceedToCheckout()">Checkout</button>
+            </div>
+            <div id="checkoutForm" class="checkout-form">
+                <h3>Detail Pengiriman</h3>
+                <input type="text" placeholder="Nama Lengkap" id="checkoutName">
+                <input type="text" placeholder="Alamat Lengkap" id="checkoutAddress">
+                <input type="tel" placeholder="Nomor HP" id="checkoutPhone">
+                <select id="checkoutPayment">
+                    <option value="">Pilih Metode Pembayaran</option>
+                    <option value="cod">Bayar di Tempat (COD)</option>
+                    <option value="transfer">Transfer Bank</option>
+                    <option value="ewallet">E-Wallet</option>
+                </select>
+
+                <!-- Payment Gateway Section -->
+                <div id="paymentGatewaySection" style="display: none;">
+                    <div class="payment-gateways">
+                        <h3 style="text-align: center; margin-bottom: 1rem;">Pilih Metode Pembayaran</h3>
+                        <div class="payment-gateway-grid">
+                            <div class="payment-gateway-card" onclick="selectPaymentGateway('midtrans')" id="midtransCard">
+                                <div class="payment-gateway-icon">💳</div>
+                                <div class="payment-gateway-name">Midtrans</div>
+                                <div class="payment-gateway-desc">Pembayaran online terpercaya</div>
+                                <div class="payment-gateway-features">
+                                    <ul>
+                                        <li>Transfer Bank</li>
+                                        <li>E-Wallet (GoPay, OVO, Dana)</li>
+                                        <li>Kartu Kredit/Debit</li>
+                                        <li>QR Code</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="payment-gateway-card" onclick="selectPaymentGateway('stripe')" id="stripeCard">
+                                <div class="payment-gateway-icon">💳</div>
+                                <div class="payment-gateway-name">Stripe</div>
+                                <div class="payment-gateway-desc">Internasional payment gateway</div>
+                                <div class="payment-gateway-features">
+                                    <ul>
+                                        <li>Kartu Kredit/Debit</li>
+                                        <li>Apple Pay & Google Pay</li>
+                                        <li>Transfer Bank</li>
+                                        <li>Secure checkout</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="payment-gateway-card" onclick="selectPaymentGateway('cod')" id="codCard">
+                                <div class="payment-gateway-icon">💵</div>
+                                <div class="payment-gateway-name">Bayar di Tempat</div>
+                                <div class="payment-gateway-desc">COD - Cash on Delivery</div>
+                                <div class="payment-gateway-features">
+                                    <ul>
+                                        <li>Bayar saat barang diterima</li>
+                                        <li>Tanpa biaya admin</li>
+                                        <li>Praktis & aman</li>
+                                        <li>Gratis ongkir</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="payment-summary" id="paymentSummary" style="display: none;">
+                            <h3>Ringkasan Pembayaran</h3>
+                            <div class="payment-summary-item">
+                                <span>Total Belanja:</span>
+                                <span id="summarySubtotal">Rp 0</span>
+                            </div>
+                            <div class="payment-summary-item">
+                                <span>Biaya Admin:</span>
+                                <span id="summaryAdminFee">Rp 0</span>
+                            </div>
+                            <div class="payment-summary-item">
+                                <span>Ongkos Kirim:</span>
+                                <span id="summaryShipping">Rp 0</span>
+                            </div>
+                            <div class="payment-summary-item">
+                                <span><strong>Total Pembayaran:</strong></span>
+                                <span id="summaryTotal"><strong>Rp 0</strong></span>
+                            </div>
+                        </div>
+
+                        <button class="btn-payment" onclick="processPayment()" id="paymentButton" disabled>
+                            Bayar Sekarang
+                        </button>
+                    </div>
+                </div>
+
+                <div class="payment-status" id="paymentStatus">
+                    <div class="payment-status-icon" id="paymentStatusIcon">⏳</div>
+                    <h3 id="paymentStatusTitle">Memproses Pembayaran...</h3>
+                    <p id="paymentStatusMessage">Mohon tunggu sebentar, pembayaran sedang diproses.</p>
+                </div>
+
+                <button onclick="completeOrder()" style="background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 6px; width: 100%; margin-top: 10px;">Selesaikan Pesanan</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // === BULUREJO MONGGOl DATA INTEGRATION ===
+        
+        // Data UMKM dari website Bulurejo Monggol
+        const bulurejoData = {
+            profilDesa: {
+                nama: "Bulurejo Monggol",
+                lokasi: "Kecamatan Saptosari, Kabupaten Gunungkidul, D.I Yogyakarta",
+                deskripsi: "Desa Bulurejo Monggol merupakan desa yang terletak di Kecamatan Saptosari Kabupaten Gunungkidul dengan potensi UMKM yang beragam.",
+                visi: "Mewujudkan Desa Bulurejo Monggol yang mandiri, sejahtera, dan berbudaya",
+                misi: [
+                    "Mengembangkan potensi ekonomi lokal",
+                    "Meningkatkan kualitas sumber daya manusia",
+                    "Melestarikan budaya dan kearifan lokal"
+                ]
+            },
+            
+            umkmData: {
+                jasaSewa: [
+                    {
+                        id: 1,
+                        nama: "Sewa Tenda & Sound System",
+                        pemilik: "Bapak Sutrisno",
+                        deskripsi: "Menyediakan jasa sewa tenda berbagai ukuran dan sound system untuk acara pernikahan, khitanan, dan acara lainnya.",
+                        harga: "Rp 500.000 - 1.500.000",
+                        kontak: "0857-1234-5678",
+                        rating: 4.5,
+                        gambar: [
+                            "https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=400&h=250&fit=crop"
+                        ],
+                        koordinat: [-7.512, 110.789],
+                        alamat: "Jl. Raya Bulurejo No. 12, Bulurejo Monggol",
+                        kategori: "jasa"
+                    }
+                ],
+
+                mebelKayu: [
+                    {
+                        id: 1,
+                        nama: "Pengrajin Kayu Jati",
+                        pemilik: "Bapak Joko",
+                        deskripsi: "Menyediakan kayu jati berkualitas dan produk mebel custom sesuai pesanan.",
+                        produk: ["Kursi", "Meja", "Lemari", "Pintu"],
+                        harga: "Rp 200.000 - 5.000.000",
+                        kontak: "0812-3456-7890",
+                        rating: 4.8,
+                        gambar: [
+                            "https://images.unsplash.com/photo-1567495243894-6586e5363b38?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=250&fit=crop"
+                        ],
+                        koordinat: [-7.508, 110.785],
+                        alamat: "Jl. Kayu Jati No. 8, Bulurejo Monggol",
+                        kategori: "mebel"
+                    }
+                ],
+
+                kesenian: [
+                    {
+                        id: 1,
+                        nama: "Grupp Reog Singo Barong",
+                        pemilik: "Bapak Suroto",
+                        deskripsi: "Menampilkan kesenian Reog khas Jawa dengan penari profesional dan kostum yang megah.",
+                        jenis: ["Reog Ponorogo", "Tari Tradisional"],
+                        harga: "Rp 1.000.000 - 3.000.000",
+                        kontak: "0856-7890-1234",
+                        rating: 4.9,
+                        gambar: [
+                            "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=400&h=250&fit=crop"
+                        ],
+                        koordinat: [-7.515, 110.792],
+                        alamat: "Jl. Budaya No. 15, Bulurejo Monggol",
+                        kategori: "kesenian"
+                    }
+                ],
+
+                kuliner: [
+                    {
+                        id: 1,
+                        nama: "Warung Makan Sederhana",
+                        pemilik: "Ibu Siti",
+                        deskripsi: "Menyajikan masakan rumahan khas Jawa dengan cita rasa autentik.",
+                        menu: ["Nasi Liwet", "Sayur Lodeh", "Ayam Goreng", "Sambal Terasi"],
+                        harga: "Rp 10.000 - 25.000",
+                        kontak: "0813-4567-8901",
+                        rating: 4.7,
+                        gambar: [
+                            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=250&fit=crop"
+                        ],
+                        koordinat: [-7.510, 110.788],
+                        alamat: "Jl. Makan No. 5, Bulurejo Monggol",
+                        kategori: "kuliner"
+                    },
+                    {
+                        id: 2,
+                        nama: "Angkringan Ngelosor",
+                        pemilik: "Bapak Riyanto",
+                        deskripsi: "Tempat nongkrong khas Jogja dengan berbagai menu angkringan yang lengkap.",
+                        menu: ["Sate Kere", "Nasi Kucing", "Teh Hangat", "Kopi Jos"],
+                        harga: "Rp 5.000 - 15.000",
+                        kontak: "0858-9012-3456",
+                        rating: 4.6,
+                        gambar: [
+                            "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=250&fit=crop"
+                        ],
+                        koordinat: [-7.507, 110.786],
+                        alamat: "Jl. Malioboro No. 22, Bulurejo Monggol",
+                        kategori: "kuliner"
+                    }
+                ],
+
+                otomotif: [
+                    {
+                        id: 1,
+                        nama: "Bengkel Sumber Rejeki",
+                        pemilik: "Bapak Ahmad",
+                        deskripsi: "Melayani service dan perbaikan kendaraan bermotor dengan teknisi berpengalaman.",
+                        layanan: ["Service Rutin", "Ganti Oli", "Perbaikan Mesin", "Tambal Ban"],
+                        harga: "Rp 50.000 - 500.000",
+                        kontak: "0811-2233-4455",
+                        rating: 4.4,
+                        gambar: [
+                            "https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1625047509248-ec889cbff17f?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=250&fit=crop"
+                        ],
+                        koordinat: [-7.513, 110.791],
+                        alamat: "Jl. Otomotif No. 18, Bulurejo Monggol",
+                        kategori: "otomotif"
+                    }
+                ],
+
+                peternakan: [
+                    {
+                        id: 1,
+                        nama: "Peternakan Ayam Kampung",
+                        pemilik: "Bapak Warsito",
+                        deskripsi: "Menyediakan ayam kampung segar dan telur ayam kampung berkualitas.",
+                        produk: ["Ayam Kampung", "Telur Ayam Kampung"],
+                        harga: "Rp 35.000 - 75.000/kg",
+                        kontak: "0857-3344-5566",
+                        rating: 4.5,
+                        gambar: [
+                            "https://images.unsplash.com/photo-1589923188651-268a35c0febb?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1452570053594-1b985d6ea890?w=400&h=250&fit=crop",
+                            "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=250&fit=crop"
+                        ],
+                        koordinat: [-7.509, 110.787],
+                        alamat: "Jl. Peternakan No. 9, Bulurejo Monggol",
+                        kategori: "peternakan"
+                    }
+                ]
+            },
+            
+            eventData: [
+                {
+                    id: 1,
+                    nama: "Pameran UMKM Desa",
+                    tanggal: "15 Desember 2024",
+                    lokasi: "Balai Desa Bulurejo",
+                    deskripsi: "Pameran produk dan jasa UMKM desa Bulurejo Monggol"
+                },
+                {
+                    id: 2,
+                    nama: "Pelatihan Digital Marketing",
+                    tanggal: "20 Desember 2024",
+                    lokasi: "Aula Kantor Desa",
+                    deskripsi: "Pelatihan pemasaran digital untuk UMKM desa"
+                },
+                {
+                    id: 3,
+                    nama: "Festival Kuliner Tradisional",
+                    tanggal: "25 Desember 2024",
+                    lokasi: "Lapangan Desa Bulurejo",
+                    deskripsi: "Festival kuliner khas Jawa dan makanan tradisional"
+                }
+            ],
+            
+            beritaData: [
+                {
+                    id: 1,
+                    judul: "Pengembangan UMKM Desa Bulurejo",
+                    tanggal: "1 Desember 2024",
+                    ringkasan: "Program pengembangan UMKM desa melalui pelatihan dan pendampingan",
+                    gambar: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=250&fit=crop"
+                },
+                {
+                    id: 2,
+                    judul: "Festival Budaya Jawa 2024",
+                    tanggal: "10 November 2024",
+                    ringkasan: "Penyelenggaraan festival budaya untuk melestarikan kesenian tradisional",
+                    gambar: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=400&h=250&fit=crop"
+                }
+            ]
+        };
+
         // === MOBILE MENU FUNCTIONALITY ===
         function toggleMobileMenu() {
             const navMenu = document.getElementById('navMenu');
@@ -2029,24 +3526,38 @@
         // Initialize on load
         document.addEventListener('DOMContentLoaded', function() {
             updateNavigationForMobile();
-            
+
             // Check dark mode preference
             if (localStorage.getItem('darkMode') === 'enabled') {
                 document.body.classList.add('dark-mode');
                 document.querySelector('.dark-mode-toggle').innerHTML = '☀️ Light';
             }
-            
+
             // Initialize other features
             renderCalendar();
             initDashboardChart();
             updateLiveStats();
-            
+            loadUMKMData();
+            updateUserUI();
+            updateCartCount();
+
             // Update live stats every 30 seconds
             setInterval(updateLiveStats, 30000);
-            
+
             // Request notification permission
             setTimeout(requestNotificationPermission, 2000);
         });
+
+        // Load UMKM data from Bulurejo Monggol
+        function loadUMKMData() {
+            // Update hero section with real data
+            document.querySelector('.hero-content h1').textContent = `Selamat Datang di ${bulurejoData.profilDesa.nama}`;
+            document.querySelector('.hero-content p').textContent = bulurejoData.profilDesa.deskripsi;
+            
+            // Update UMKM count in stats
+            const totalUMKM = Object.values(bulurejoData.umkmData).reduce((total, category) => total + category.length, 0);
+            document.querySelector('.stat-card:nth-child(3) .stat-number').textContent = `${totalUMKM}+`;
+        }
 
         // Modified showSection function to close mobile menu
         function showSection(sectionId) {
@@ -2079,10 +3590,232 @@
             }, 500);
         }
 
-        // [Previous JavaScript code for all other features remains the same]
-        // ... (all the previous JavaScript code for notifications, live stats, etc.)
+        // === BULUREJO-SPECIFIC FUNCTIONS ===
+        
+        // Global variables for lightbox
+        let currentImages = [];
+        let currentImageIndex = 0;
 
-        // Example of other essential functions (you already have these)
+        // Function to display UMKM details
+        function showUMKMDetail(category, id) {
+            const umkm = bulurejoData.umkmData[category].find(item => item.id === id);
+            if (!umkm) return;
+
+            // Ensure gambar is an array
+            const images = Array.isArray(umkm.gambar) ? umkm.gambar : [umkm.gambar];
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <h2>${umkm.nama}</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem;">
+                    <div>
+                        <div class="gallery-section">
+                            <div class="gallery-grid">
+                                ${images.map((img, index) => `
+                                    <img src="${img}" alt="${umkm.nama} - Gambar ${index + 1}"
+                                         onclick="openLightbox('${category}', ${id}, ${index})"
+                                         style="cursor: pointer;">
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p><strong>Pemilik:</strong> ${umkm.pemilik}</p>
+                        <p><strong>Deskripsi:</strong> ${umkm.deskripsi}</p>
+                        <p><strong>Harga:</strong> ${umkm.harga}</p>
+                        <p><strong>Kontak:</strong> ${umkm.kontak}</p>
+                        <div class="rating-stars">
+                            ${'★'.repeat(Math.floor(umkm.rating))}${umkm.rating % 1 >= 0.5 ? '½' : ''}${'☆'.repeat(5 - Math.ceil(umkm.rating))}
+                            <span class="rating-value">${umkm.rating}/5.0</span>
+                        </div>
+                        ${umkm.produk ? `<p><strong>Produk:</strong> ${umkm.produk.join(', ')}</p>` : ''}
+                        ${umkm.menu ? `<p><strong>Menu:</strong> ${umkm.menu.join(', ')}</p>` : ''}
+                        ${umkm.layanan ? `<p><strong>Layanan:</strong> ${umkm.layanan.join(', ')}</p>` : ''}
+                        ${umkm.jenis ? `<p><strong>Jenis:</strong> ${umkm.jenis.join(', ')}</p>` : ''}
+                    </div>
+                </div>
+                <div class="toko-actions" style="margin-top: 2rem;">
+                    <button class="btn-wa" onclick="contactWA('${umkm.kontak}', '${umkm.nama}')">Chat WhatsApp</button>
+                    <button class="btn-booking" onclick="openBookingModal('${category}', ${id})" style="background: linear-gradient(135deg, #FF6B6B 0%, #ee5a24 100%); margin-right: 1rem;">Pesan Sekarang</button>
+                    <button class="btn-whatsapp" onclick="openWhatsappTemplates('${umkm.kontak}', '${umkm.nama}', '${category}')" style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); margin-right: 1rem;">Template WA</button>
+                    <button class="btn-detail" onclick="closeModal()">Tutup</button>
+                </div>
+            `;
+
+            document.getElementById('tokoModal').style.display = 'block';
+        }
+
+        // Function to contact via WhatsApp
+        function contactWA(phone, businessName) {
+            const message = `Halo, saya tertarik dengan produk/jasa ${businessName} dari Portal UMKM Bulurejo Monggol. Bisa info lebih lanjut?`;
+            const encodedMessage = encodeURIComponent(message);
+            window.open(`https://wa.me/${phone.replace(/-/g, '')}?text=${encodedMessage}`, '_blank');
+        }
+
+        // Function to load events from Bulurejo data
+        function loadEvents() {
+            const eventList = document.querySelector('.event-list');
+            eventList.innerHTML = '';
+            
+            bulurejoData.eventData.forEach(event => {
+                const eventItem = document.createElement('div');
+                eventItem.className = 'event-item';
+                eventItem.innerHTML = `
+                    <span class="event-date">${event.tanggal.split(' ')[0]} ${event.tanggal.split(' ')[1]}</span>
+                    <span class="event-title">${event.nama}</span>
+                `;
+                eventList.appendChild(eventItem);
+            });
+        }
+
+        // Function to load news/articles
+        function loadNews() {
+            const articlesGrid = document.querySelector('.articles-grid');
+            articlesGrid.innerHTML = '';
+            
+            bulurejoData.beritaData.forEach(article => {
+                const articleCard = document.createElement('article');
+                articleCard.className = 'article-card';
+                articleCard.onclick = () => showArticleDetail(article.id);
+                articleCard.innerHTML = `
+                    <h3>${article.judul}</h3>
+                    <p>${article.ringkasan}</p>
+                    <a>Baca Selengkapnya →</a>
+                `;
+                articlesGrid.appendChild(articleCard);
+            });
+        }
+
+        // Function to show article details
+        function showArticleDetail(articleId) {
+            const article = bulurejoData.beritaData.find(item => item.id === articleId);
+            if (!article) return;
+            
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <h2>${article.judul}</h2>
+                <p style="color: #666; margin-bottom: 1rem;">${article.tanggal}</p>
+                <img src="${article.gambar}" alt="${article.judul}" style="width: 100%; border-radius: 8px; margin-bottom: 1rem;">
+                <p>${article.ringkasan}</p>
+                <p>Artikel lengkap akan segera tersedia. Untuk informasi lebih lanjut, silakan hubungi admin desa.</p>
+                <div class="toko-actions" style="margin-top: 2rem;">
+                    <button class="btn-detail" onclick="closeModal()">Tutup</button>
+                </div>
+            `;
+            
+            document.getElementById('tokoModal').style.display = 'block';
+        }
+
+        // Initialize data loading
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUMKMData();
+            loadEvents();
+            loadNews();
+            initUMKMMap();
+        });
+
+        // Initialize UMKM Map
+        function initUMKMMap() {
+            const mapElement = document.getElementById('umkmMap');
+            if (!mapElement) return;
+
+            // Initialize map centered on Bulurejo Monggol
+            const map = L.map('umkmMap').setView([-7.51, 110.788], 14);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Custom icons for different categories
+            const iconColors = {
+                jasa: '#FF9800',
+                mebel: '#8B4513',
+                kesenian: '#9C27B0',
+                kuliner: '#4CAF50',
+                otomotif: '#2196F3',
+                peternakan: '#795548'
+            };
+
+            // Add markers for each UMKM
+            Object.values(bulurejoData.umkmData).forEach(category => {
+                category.forEach(umkm => {
+                    const icon = L.divIcon({
+                        className: 'umkm-marker',
+                        html: `<div style="background-color: ${iconColors[umkm.kategori]};
+                                              width: 24px;
+                                              height: 24px;
+                                              border-radius: 50%;
+                                              border: 3px solid white;
+                                              box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                                              display: flex;
+                                              align-items: center;
+                                              justify-content: center;
+                                              font-size: 12px;
+                                              font-weight: bold;
+                                              color: white;">${umkm.kategori.charAt(0).toUpperCase()}</div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+
+                    const marker = L.marker(umkm.koordinat, { icon: icon }).addTo(map);
+
+                    // Create popup content
+                    const popupContent = `
+                        <div style="max-width: 250px; font-family: Arial, sans-serif;">
+                            <img src="${umkm.gambar}" alt="${umkm.nama}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
+                            <h3 style="margin: 0 0 8px 0; color: #2E7D32; font-size: 16px;">${umkm.nama}</h3>
+                            <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Pemilik:</strong> ${umkm.pemilik}</p>
+                            <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Alamat:</strong> ${umkm.alamat}</p>
+                            <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Kontak:</strong> ${umkm.kontak}</p>
+                            <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Harga:</strong> ${umkm.harga}</p>
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 14px; margin-right: 8px;"><strong>Rating:</strong></span>
+                                <div style="display: flex;">
+                                    ${'★'.repeat(Math.floor(umkm.rating))}${'☆'.repeat(5 - Math.floor(umkm.rating))}
+                                </div>
+                                <span style="font-size: 14px; margin-left: 4px;">${umkm.rating}/5.0</span>
+                            </div>
+                            <p style="margin: 0 0 12px 0; font-size: 13px; color: #666;">${umkm.deskripsi}</p>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="contactWA('${umkm.kontak}', '${umkm.nama}')" style="background: #25D366; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">WhatsApp</button>
+                                <button onclick="showUMKMDetail('${umkm.kategori}', ${umkm.id})" style="background: #2196F3; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Detail</button>
+                            </div>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupContent);
+                });
+            });
+
+            // Add legend
+            const legend = L.control({ position: 'bottomright' });
+            legend.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'map-legend');
+                div.innerHTML = `
+                    <h4>Kategori UMKM</h4>
+                    ${Object.entries(iconColors).map(([kategori, color]) => `
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: ${color}"></div>
+                            <span>${kategori.charAt(0).toUpperCase() + kategori.slice(1)}</span>
+                        </div>
+                    `).join('')}
+                `;
+                return div;
+            };
+            legend.addTo(map);
+
+            // Add layer control
+            const baseLayers = {
+                "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+            };
+
+            L.control.layers(baseLayers).addTo(map);
+        }
+
+        // === EXISTING FUNCTIONS (keep your existing functionality) ===
+        
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
             const toggleBtn = document.querySelector('.dark-mode-toggle');
@@ -2106,8 +3839,1003 @@
             document.getElementById('todayOrders').textContent = orders;
         }
 
-        // ... (rest of your existing JavaScript functions)
+        function renderCalendar() {
+            // Your existing calendar rendering code
+            const calendarGrid = document.getElementById('calendarGrid');
+            const days = ['M', 'S', 'S', 'R', 'K', 'J', 'S'];
+            
+            // Add day headers
+            days.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = day;
+                dayElement.style.fontWeight = 'bold';
+                calendarGrid.appendChild(dayElement);
+            });
+            
+            // Add calendar days (simplified)
+            for (let i = 1; i <= 31; i++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = i;
+                
+                // Mark today and events
+                if (i === new Date().getDate()) {
+                    dayElement.classList.add('today');
+                }
+                if ([15, 20, 25].includes(i)) {
+                    dayElement.classList.add('event');
+                }
+                
+                calendarGrid.appendChild(dayElement);
+            }
+        }
 
+        function initDashboardChart() {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+                    datasets: [{
+                        label: 'Penjualan (Rp)',
+                        data: [8500000, 9200000, 7800000, 10500000, 12450000, 11000000],
+                        borderColor: '#2E7D32',
+                        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('tokoModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('tokoModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Your other existing functions...
+        function searchToko() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            alert(`Pencarian untuk: ${searchTerm}`);
+            // Implement your search logic here
+        }
+
+        function advancedSearch() {
+            alert('Filter diterapkan!');
+            // Implement your advanced search logic here
+        }
+
+        function shareFacebook() {
+            alert('Berbagi ke Facebook');
+        }
+
+        function shareWhatsApp() {
+            alert('Berbagi ke WhatsApp');
+        }
+
+        function shareInstagram() {
+            alert('Berbagi ke Instagram');
+        }
+
+        function toggleChat() {
+            document.getElementById('chatWindow').classList.toggle('active');
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const messages = document.getElementById('chatMessages');
+            
+            if (input.value.trim()) {
+                const userMessage = document.createElement('div');
+                userMessage.className = 'message user';
+                userMessage.textContent = input.value;
+                messages.appendChild(userMessage);
+                
+                input.value = '';
+                messages.scrollTop = messages.scrollHeight;
+                
+                // Auto reply after 1 second
+                setTimeout(() => {
+                    const botMessage = document.createElement('div');
+                    botMessage.className = 'message bot';
+                    botMessage.textContent = 'Terima kasih atas pesannya. Admin akan membalas segera.';
+                    messages.appendChild(botMessage);
+                    messages.scrollTop = messages.scrollHeight;
+                }, 1000);
+            }
+        }
+
+        function sendToChatbot() {
+            const input = document.getElementById('chatbotInput');
+            const messages = document.getElementById('chatbotMessages');
+            
+            if (input.value.trim()) {
+                const userMessage = document.createElement('div');
+                userMessage.className = 'user-message';
+                userMessage.textContent = input.value;
+                messages.appendChild(userMessage);
+                
+                const userText = input.value.toLowerCase();
+                input.value = '';
+                messages.scrollTop = messages.scrollHeight;
+                
+                // Simple chatbot responses
+                let response = "Maaf, saya tidak mengerti pertanyaan Anda. Coba tanyakan tentang UMKM di Bulurejo Monggol.";
+                
+                if (userText.includes('tenda') || userText.includes('sewa')) {
+                    response = "Untuk jasa sewa tenda dan sound system, silakan hubungi Bapak Sutrisno di 0857-1234-5678. Harga mulai Rp 500.000.";
+                } else if (userText.includes('kayu') || userText.includes('mebel')) {
+                    response = "Pengrajin kayu jati tersedia dengan produk kursi, meja, lemari, dan pintu custom. Hubungi Bapak Joko di 0812-3456-7890.";
+                } else if (userText.includes('reog') || userText.includes('kesenian')) {
+                    response = "Grupp Reog Singo Barong siap menghibur acara Anda. Hubungi Bapak Suroto di 0856-7890-1234. Harga mulai Rp 1.000.000.";
+                } else if (userText.includes('makan') || userText.includes('kuliner')) {
+                    response = "Warung makan dan angkringan tersedia di Bulurejo. Coba Warung Ibu Siti atau Angkringan Ngelosor Bapak Riyanto.";
+                } else if (userText.includes('bengkel') || userText.includes('otomotif')) {
+                    response = "Bengkel Sumber Rejeki melayani service kendaraan. Hubungi Bapak Ahmad di 0811-2233-4455.";
+                } else if (userText.includes('ayam') || userText.includes('peternakan')) {
+                    response = "Peternakan ayam kampung menyediakan ayam dan telur segar. Hubungi Bapak Warsito di 0857-3344-5566.";
+                } else if (userText.includes('event') || userText.includes('acara')) {
+                    response = "Event mendatang: Pameran UMKM (15 Des), Pelatihan Digital Marketing (20 Des), Festival Kuliner (25 Des).";
+                }
+                
+                setTimeout(() => {
+                    const botMessage = document.createElement('div');
+                    botMessage.className = 'bot-message';
+                    botMessage.textContent = response;
+                    messages.appendChild(botMessage);
+                    messages.scrollTop = messages.scrollHeight;
+                }, 1000);
+            }
+        }
+
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        function clearNotifications() {
+            document.querySelectorAll('.notification-item').forEach(item => {
+                item.remove();
+            });
+            document.querySelector('.notification-count').textContent = '0';
+        }
+
+        function changeLanguage(lang) {
+            alert(`Bahasa diubah ke: ${lang}`);
+            // Implement language switching logic here
+        }
+
+        function prevMonth() {
+            alert('Bulan sebelumnya');
+            // Implement calendar navigation
+        }
+
+        function nextMonth() {
+            alert('Bulan berikutnya');
+            // Implement calendar navigation
+        }
+
+        function showArticle(articleId) {
+            alert(`Membuka artikel: ${articleId}`);
+            // Implement article display logic
+        }
+
+        function showTokoDetail(tokoId) {
+            alert(`Detail toko: ${tokoId}`);
+            // Implement store detail display
+        }
+
+        function smartWA(tokoId, tokoName) {
+            alert(`Membuka WhatsApp untuk: ${tokoName}`);
+            // Implement WhatsApp integration
+        }
+
+        function shareProduct(productName) {
+            alert(`Membagikan produk: ${productName}`);
+            // Implement product sharing
+        }
+
+        // === AUTH FUNCTIONS ===
+        function openAuthModal() {
+            document.getElementById('authModal').style.display = 'block';
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const tabs = document.querySelectorAll('.auth-tab');
+
+            tabs.forEach(t => t.classList.remove('active'));
+            if (tab === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                tabs[0].classList.add('active');
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                tabs[1].classList.add('active');
+            }
+        }
+
+        function registerUser() {
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const category = document.getElementById('regCategory').value;
+
+            if (!name || !email || !password || !category) {
+                alert('Semua field harus diisi!');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('umkmUsers') || '[]');
+            if (users.find(u => u.email === email)) {
+                alert('Email sudah terdaftar!');
+                return;
+            }
+
+            users.push({ name, email, password, category, points: 0 });
+            localStorage.setItem('umkmUsers', JSON.stringify(users));
+            alert('Pendaftaran berhasil! Silakan login.');
+            switchAuthTab('login');
+        }
+
+        function loginUser() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const users = JSON.parse(localStorage.getItem('umkmUsers') || '[]');
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                alert('Login berhasil!');
+                closeAuthModal();
+                updateUserUI();
+            } else {
+                alert('Email atau password salah!');
+            }
+        }
+
+        function updateUserUI() {
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            if (user) {
+                document.querySelector('button[onclick="openAuthModal()"]').innerHTML = `👤 ${user.name}`;
+                document.querySelector('button[onclick="openAuthModal()"]').onclick = () => showSection('vendor');
+            }
+        }
+
+        // === CART FUNCTIONS ===
+        function addToCart(productName, price) {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const existingItem = cart.find(item => item.name === productName);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ name: productName, price: parseInt(price.replace(/[^\d]/g, '')), quantity: 1 });
+            }
+
+            localStorage.setItem('cart', JSON.stringify(cart));
+            alert(`${productName} ditambahkan ke keranjang!`);
+            updateCartCount();
+        }
+
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const cartButton = document.querySelector('button[onclick="openCartModal()"]');
+            if (cartButton) {
+                cartButton.innerHTML = `🛒 Keranjang${totalItems > 0 ? ` (${totalItems})` : ''}`;
+            }
+        }
+
+        function openCartModal() {
+            document.getElementById('cartModal').style.display = 'block';
+            displayCartItems();
+        }
+
+        function closeCartModal() {
+            document.getElementById('cartModal').style.display = 'none';
+            document.getElementById('checkoutForm').classList.remove('active');
+        }
+
+        function displayCartItems() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const cartItemsDiv = document.getElementById('cartItems');
+            const cartTotalDiv = document.getElementById('cartTotal');
+
+            if (cart.length === 0) {
+                cartItemsDiv.innerHTML = '<p>Keranjang kosong</p>';
+                cartTotalDiv.textContent = 'Total: Rp 0';
+                return;
+            }
+
+            let total = 0;
+            cartItemsDiv.innerHTML = cart.map(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                return `
+                    <div class="cart-item">
+                        <div>
+                            <strong>${item.name}</strong><br>
+                            Rp ${item.price.toLocaleString()} x ${item.quantity}
+                        </div>
+                        <div>
+                            Rp ${itemTotal.toLocaleString()}
+                            <button onclick="removeFromCart('${item.name}')" style="margin-left: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; padding: 4px 8px;">Hapus</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            cartTotalDiv.textContent = `Total: Rp ${total.toLocaleString()}`;
+        }
+
+        function removeFromCart(productName) {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const updatedCart = cart.filter(item => item.name !== productName);
+            localStorage.setItem('cart', JSON.stringify(updatedCart));
+            displayCartItems();
+        }
+
+        function proceedToCheckout() {
+            document.getElementById('checkoutForm').classList.add('active');
+        }
+
+        function completeOrder() {
+            const name = document.getElementById('checkoutName').value;
+            const address = document.getElementById('checkoutAddress').value;
+            const phone = document.getElementById('checkoutPhone').value;
+            const payment = document.getElementById('checkoutPayment').value;
+
+            if (!name || !address || !phone || !payment) {
+                alert('Semua field harus diisi!');
+                return;
+            }
+
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (cart.length === 0) {
+                alert('Keranjang kosong!');
+                return;
+            }
+
+            // Simulate order completion
+            alert('Pesanan berhasil! Kami akan menghubungi Anda segera.');
+            localStorage.removeItem('cart');
+            closeCartModal();
+            updateCartCount();
+        }
+
+        // === LIGHTBOX FUNCTIONS ===
+        function openLightbox(category, id, startIndex = 0) {
+            const umkm = bulurejoData.umkmData[category].find(item => item.id === id);
+            if (!umkm) return;
+
+            currentImages = Array.isArray(umkm.gambar) ? umkm.gambar : [umkm.gambar];
+            currentImageIndex = startIndex;
+
+            updateLightbox();
+            document.getElementById('lightbox').classList.add('active');
+
+            // Prevent body scroll when lightbox is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function updateLightbox() {
+            const lightboxImage = document.getElementById('lightboxImage');
+            const lightboxCounter = document.getElementById('lightboxCounter');
+            const lightboxThumbnails = document.getElementById('lightboxThumbnails');
+
+            // Update main image
+            lightboxImage.src = currentImages[currentImageIndex];
+            lightboxImage.alt = `Gambar ${currentImageIndex + 1}`;
+
+            // Update counter
+            lightboxCounter.textContent = `${currentImageIndex + 1} / ${currentImages.length}`;
+
+            // Update thumbnails
+            lightboxThumbnails.innerHTML = currentImages.map((img, index) => `
+                <img src="${img}" class="lightbox-thumbnail ${index === currentImageIndex ? 'active' : ''}"
+                     onclick="goToImage(${index})" alt="Thumbnail ${index + 1}">
+            `).join('');
+        }
+
+        function nextImage() {
+            currentImageIndex = (currentImageIndex + 1) % currentImages.length;
+            updateLightbox();
+        }
+
+        function prevImage() {
+            currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
+            updateLightbox();
+        }
+
+        function goToImage(index) {
+            currentImageIndex = index;
+            updateLightbox();
+        }
+
+        // Keyboard navigation for lightbox
+        document.addEventListener('keydown', function(event) {
+            if (!document.getElementById('lightbox').classList.contains('active')) return;
+
+            switch(event.key) {
+                case 'ArrowRight':
+                    nextImage();
+                    break;
+                case 'ArrowLeft':
+                    prevImage();
+                    break;
+                case 'Escape':
+                    closeLightbox();
+                    break;
+            }
+        });
+
+        // Close lightbox when clicking outside the image
+        document.getElementById('lightbox').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeLightbox();
+            }
+        });
+
+        // === BOOKING SYSTEM FUNCTIONS ===
+        let currentBookingUMKM = null;
+        let selectedDate = null;
+        let selectedTime = null;
+
+        function openBookingModal(category, id) {
+            const umkm = bulurejoData.umkmData[category].find(item => item.id === id);
+            if (!umkm) return;
+
+            currentBookingUMKM = { category, id, ...umkm };
+            selectedDate = null;
+            selectedTime = null;
+
+            const bookingContent = document.getElementById('bookingContent');
+            bookingContent.innerHTML = `
+                <div class="booking-section">
+                    <h3 style="margin-bottom: 1rem; text-align: center;">Pesan ${umkm.nama}</h3>
+
+                    <div class="booking-form">
+                        <div class="booking-form-group">
+                            <label for="bookingName">Nama Lengkap</label>
+                            <input type="text" id="bookingName" placeholder="Masukkan nama lengkap" required>
+                        </div>
+
+                        <div class="booking-form-group">
+                            <label for="bookingPhone">Nomor Telepon</label>
+                            <input type="tel" id="bookingPhone" placeholder="0812-3456-7890" required>
+                        </div>
+
+                        <div class="booking-form-group">
+                            <label for="bookingEmail">Email (Opsional)</label>
+                            <input type="email" id="bookingEmail" placeholder="email@example.com">
+                        </div>
+
+                        <div class="booking-form-group">
+                            <label for="bookingService">Jenis Layanan</label>
+                            <select id="bookingService" required>
+                                <option value="">Pilih layanan...</option>
+                                ${getServiceOptions(category, umkm)}
+                            </select>
+                        </div>
+
+                        <div class="booking-form-group" style="grid-column: span 2;">
+                            <label for="bookingNotes">Catatan Tambahan</label>
+                            <textarea id="bookingNotes" rows="3" placeholder="Jelaskan kebutuhan spesifik Anda..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button class="calendar-nav" onclick="prevMonth()">&#10094;</button>
+                            <div class="calendar-title" id="calendarTitle">Januari 2024</div>
+                            <button class="calendar-nav" onclick="nextMonth()">&#10095;</button>
+                        </div>
+
+                        <div class="calendar-grid" id="calendarGrid">
+                            <!-- Calendar days will be populated by JavaScript -->
+                        </div>
+
+                        <div class="time-slots" id="timeSlots" style="display: none;">
+                            <!-- Time slots will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="booking-summary" id="bookingSummary" style="display: none;">
+                        <h3>Ringkasan Pemesanan</h3>
+                        <div class="summary-item">
+                            <span>Layanan:</span>
+                            <span id="summaryService">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Tanggal:</span>
+                            <span id="summaryDate">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Waktu:</span>
+                            <span id="summaryTime">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Biaya:</span>
+                            <span id="summaryPrice">-</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-booking" id="bookingSubmitBtn" onclick="submitBooking()" disabled>
+                        Konfirmasi Pemesanan
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('bookingTitle').textContent = `Pesan ${umkm.nama}`;
+            document.getElementById('bookingModal').style.display = 'block';
+
+            // Initialize calendar
+            initializeCalendar();
+        }
+
+        function closeBookingModal() {
+            document.getElementById('bookingModal').style.display = 'none';
+            currentBookingUMKM = null;
+            selectedDate = null;
+            selectedTime = null;
+        }
+
+        function getServiceOptions(category, umkm) {
+            const services = [];
+
+            if (category === 'jasaSewa') {
+                services.push(
+                    '<option value="sewa-tenda">Sewa Tenda</option>',
+                    '<option value="sewa-sound">Sewa Sound System</option>',
+                    '<option value="sewa-komplit">Paket Komplit</option>'
+                );
+            } else if (category === 'mebelKayu') {
+                if (umkm.produk) {
+                    umkm.produk.forEach(produk => {
+                        services.push(`<option value="${produk.toLowerCase().replace(' ', '-')}">${produk}</option>`);
+                    });
+                }
+            } else if (category === 'kesenian') {
+                if (umkm.jenis) {
+                    umkm.jenis.forEach(jenis => {
+                        services.push(`<option value="${jenis.toLowerCase().replace(' ', '-')}">${jenis}</option>`);
+                    });
+                }
+            } else if (category === 'kuliner') {
+                if (umkm.menu) {
+                    umkm.menu.forEach(menu => {
+                        services.push(`<option value="${menu.toLowerCase().replace(' ', '-')}">${menu}</option>`);
+                    });
+                }
+            } else if (category === 'otomotif') {
+                if (umkm.layanan) {
+                    umkm.layanan.forEach(layanan => {
+                        services.push(`<option value="${layanan.toLowerCase().replace(' ', '-')}">${layanan}</option>`);
+                    });
+                }
+            } else if (category === 'peternakan') {
+                if (umkm.produk) {
+                    umkm.produk.forEach(produk => {
+                        services.push(`<option value="${produk.toLowerCase().replace(' ', '-')}">${produk}</option>`);
+                    });
+                }
+            }
+
+            return services.length > 0 ? services.join('') : '<option value="konsultasi">Konsultasi</option>';
+        }
+
+        function initializeCalendar() {
+            const now = new Date();
+            let currentMonth = now.getMonth();
+            let currentYear = now.getFullYear();
+
+            function renderCalendar(month, year) {
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const startDate = new Date(firstDay);
+                startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+                const calendarGrid = document.getElementById('calendarGrid');
+                const calendarTitle = document.getElementById('calendarTitle');
+
+                calendarTitle.textContent = `${getMonthName(month)} ${year}`;
+
+                let html = '';
+
+                // Day headers
+                const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+                days.forEach(day => {
+                    html += `<div class="calendar-day-header">${day}</div>`;
+                });
+
+                // Calendar days
+                const endDate = new Date(lastDay);
+                endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
+
+                let currentDate = new Date(startDate);
+                while (currentDate <= endDate) {
+                    const isCurrentMonth = currentDate.getMonth() === month;
+                    const isToday = currentDate.toDateString() === now.toDateString();
+                    const isPast = currentDate < now && !isToday;
+                    const isSelected = selectedDate && currentDate.toDateString() === selectedDate.toDateString();
+
+                    const classes = [
+                        'calendar-day',
+                        isCurrentMonth ? '' : 'disabled',
+                        isToday ? 'today' : '',
+                        isSelected ? 'selected' : '',
+                        isPast ? 'disabled' : ''
+                    ].filter(cls => cls).join(' ');
+
+                    html += `<div class="${classes}" onclick="selectDate(${currentDate.getTime()})">${currentDate.getDate()}</div>`;
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+
+                calendarGrid.innerHTML = html;
+            }
+
+            function getMonthName(month) {
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                               'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                return months[month];
+            }
+
+            window.renderCalendar = renderCalendar;
+            window.currentMonth = currentMonth;
+            window.currentYear = currentYear;
+
+            renderCalendar(currentMonth, currentYear);
+        }
+
+        function prevMonth() {
+            window.currentMonth--;
+            if (window.currentMonth < 0) {
+                window.currentMonth = 11;
+                window.currentYear--;
+            }
+            window.renderCalendar(window.currentMonth, window.currentYear);
+        }
+
+        function nextMonth() {
+            window.currentMonth++;
+            if (window.currentMonth > 11) {
+                window.currentMonth = 0;
+                window.currentYear++;
+            }
+            window.renderCalendar(window.currentMonth, window.currentYear);
+        }
+
+        function selectDate(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+
+            if (date < now && date.toDateString() !== now.toDateString()) {
+                return; // Can't select past dates
+            }
+
+            selectedDate = date;
+
+            // Update calendar display
+            const calendarDays = document.querySelectorAll('.calendar-day');
+            calendarDays.forEach(day => day.classList.remove('selected'));
+
+            event.target.classList.add('selected');
+
+            // Show time slots
+            showTimeSlots();
+        }
+
+        function showTimeSlots() {
+            const timeSlotsContainer = document.getElementById('timeSlots');
+            const timeSlots = [
+                '09:00', '10:00', '11:00', '12:00', '13:00', '14:00',
+                '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
+            ];
+
+            let html = '';
+            timeSlots.forEach(time => {
+                const isSelected = selectedTime === time;
+                html += `<div class="time-slot ${isSelected ? 'selected' : ''}" onclick="selectTime('${time}')">${time}</div>`;
+            });
+
+            timeSlotsContainer.innerHTML = html;
+            timeSlotsContainer.style.display = 'grid';
+
+            updateBookingSummary();
+        }
+
+        function selectTime(time) {
+            selectedTime = time;
+
+            // Update time slot display
+            const timeSlots = document.querySelectorAll('.time-slot');
+            timeSlots.forEach(slot => slot.classList.remove('selected'));
+
+            event.target.classList.add('selected');
+
+            updateBookingSummary();
+        }
+
+        function updateBookingSummary() {
+            const summary = document.getElementById('bookingSummary');
+            const serviceSelect = document.getElementById('bookingService');
+
+            if (selectedDate && selectedTime && serviceSelect.value) {
+                document.getElementById('summaryService').textContent = serviceSelect.options[serviceSelect.selectedIndex].text;
+                document.getElementById('summaryDate').textContent = selectedDate.toLocaleDateString('id-ID', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+                document.getElementById('summaryTime').textContent = selectedTime;
+                document.getElementById('summaryPrice').textContent = currentBookingUMKM.harga;
+
+                summary.style.display = 'block';
+                document.getElementById('bookingSubmitBtn').disabled = false;
+            } else {
+                summary.style.display = 'none';
+                document.getElementById('bookingSubmitBtn').disabled = true;
+            }
+        }
+
+        function submitBooking() {
+            const name = document.getElementById('bookingName').value;
+            const phone = document.getElementById('bookingPhone').value;
+            const email = document.getElementById('bookingEmail').value;
+            const service = document.getElementById('bookingService').value;
+            const notes = document.getElementById('bookingNotes').value;
+
+            if (!name || !phone || !service || !selectedDate || !selectedTime) {
+                alert('Mohon lengkapi semua field yang diperlukan!');
+                return;
+            }
+
+            // Create booking object
+            const booking = {
+                id: Date.now(),
+                umkmId: currentBookingUMKM.id,
+                umkmName: currentBookingUMKM.nama,
+                umkmCategory: currentBookingUMKM.category,
+                customerName: name,
+                customerPhone: phone,
+                customerEmail: email,
+                service: service,
+                date: selectedDate.toISOString(),
+                time: selectedTime,
+                notes: notes,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+
+            // Save to localStorage
+            const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+            bookings.push(booking);
+            localStorage.setItem('bookings', JSON.stringify(bookings));
+
+            // Send WhatsApp message
+            const message = `Halo ${currentBookingUMKM.nama}!
+
+Saya ingin memesan layanan:
+- Nama: ${name}
+- Telepon: ${phone}
+- Layanan: ${service}
+- Tanggal: ${selectedDate.toLocaleDateString('id-ID')}
+- Waktu: ${selectedTime}
+${notes ? `- Catatan: ${notes}` : ''}
+
+Mohon konfirmasi pemesanan ini. Terima kasih!`;
+
+            const whatsappUrl = `https://wa.me/${currentBookingUMKM.kontak.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+
+            alert('Pemesanan berhasil! Anda akan diarahkan ke WhatsApp untuk konfirmasi.');
+            closeBookingModal();
+        }
+
+        // Update service selection handler
+        document.addEventListener('change', function(event) {
+            if (event.target.id === 'bookingService') {
+                updateBookingSummary();
+            }
+        });
+
+        // === WHATSAPP BUSINESS INTEGRATION FUNCTIONS ===
+        let currentWhatsappContact = null;
+        let currentWhatsappName = null;
+        let currentWhatsappCategory = null;
+
+        function openWhatsappTemplates(contact, name, category) {
+            currentWhatsappContact = contact;
+            currentWhatsappName = name;
+            currentWhatsappCategory = category;
+
+            const whatsappContent = document.getElementById('whatsappModal');
+            whatsappContent.style.display = 'block';
+
+            // Initialize templates
+            initializeWhatsappTemplates();
+        }
+
+        function closeWhatsappModal() {
+            document.getElementById('whatsappModal').style.display = 'none';
+            currentWhatsappContact = null;
+            currentWhatsappName = null;
+            currentWhatsappCategory = null;
+        }
+
+        function initializeWhatsappTemplates() {
+            const templates = getWhatsappTemplates(currentWhatsappCategory);
+
+            // For now, we'll use the modal for custom messages
+            // Templates will be shown in a separate section
+        }
+
+        function getWhatsappTemplates(category) {
+            const templates = {
+                jasaSewa: [
+                    {
+                        icon: '🏠',
+                        title: 'Informasi Sewa Tenda',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya ingin bertanya tentang layanan sewa tenda Anda:\n- Harga sewa per hari\n- Kapasitas tenda\n- Syarat dan ketentuan\n- Ketersediaan jadwal\n\nMohon informasi detailnya ya. Terima kasih!`
+                    },
+                    {
+                        icon: '🔊',
+                        title: 'Informasi Sound System',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya tertarik dengan layanan sound system Anda:\n- Paket sound yang tersedia\n- Harga sewa\n- Area coverage\n- Setup dan teknisi\n\nBisa beri penawaran? Terima kasih!`
+                    },
+                    {
+                        icon: '📅',
+                        title: 'Booking Event',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya ingin booking untuk acara:\n- Tanggal: [isi tanggal]\n- Jenis acara: [isi jenis acara]\n- Jumlah tamu: [isi jumlah]\n- Kebutuhan: Tenda + Sound System\n\nMohon konfirmasi ketersediaan dan harga. Terima kasih!`
+                    }
+                ],
+                mebelKayu: [
+                    {
+                        icon: '🪑',
+                        title: 'Informasi Kursi',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya tertarik dengan kursi kayu Anda:\n- Model kursi yang tersedia\n- Harga per unit\n- Bahan dan finishing\n- Waktu pengerjaan\n\nBisa lihat katalog lengkapnya? Terima kasih!`
+                    },
+                    {
+                        icon: '🛋️',
+                        title: 'Informasi Meja',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya butuh meja kayu untuk:\n- Ukuran yang dibutuhkan\n- Model/desain\n- Bahan kayu\n- Budget\n\nMohon rekomendasi dan harga. Terima kasih!`
+                    },
+                    {
+                        icon: '🛠️',
+                        title: 'Custom Order',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya ingin pesan custom furniture:\n- Jenis: [isi jenis]\n- Dimensi: [isi ukuran]\n- Desain: [isi deskripsi]\n- Bahan: [isi bahan]\n- Quantity: [isi jumlah]\n\nBisa diskusi detailnya? Terima kasih!`
+                    }
+                ],
+                kesenian: [
+                    {
+                        icon: '🎨',
+                        title: 'Informasi Lukisan',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya tertarik dengan lukisan Anda:\n- Tema yang tersedia\n- Ukuran dan harga\n- Teknik melukis\n- Waktu pengerjaan\n\nBisa lihat portfolio lengkapnya? Terima kasih!`
+                    },
+                    {
+                        icon: '🎭',
+                        title: 'Informasi Kerajinan',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya suka kerajinan tangan Anda:\n- Jenis kerajinan yang dibuat\n- Harga kisaran\n- Bahan yang digunakan\n- Pesan custom\n\nMohon informasi detailnya ya. Terima kasih!`
+                    },
+                    {
+                        icon: '📸',
+                        title: 'Komisi Karya',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya ingin komisi karya seni:\n- Tema: [isi tema]\n- Ukuran: [isi ukuran]\n- Teknik: [isi teknik]\n- Budget: [isi budget]\n- Deadline: [isi tenggat]\n\nBisa diskusi konsepnya? Terima kasih!`
+                    }
+                ],
+                kuliner: [
+                    {
+                        icon: '🍽️',
+                        title: 'Informasi Menu',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya tertarik dengan menu Anda:\n- Menu spesial hari ini\n- Harga kisaran\n- Porsi untuk berapa orang\n- Bisa pesan antar?\n\nMohon informasi lengkapnya ya. Terima kasih!`
+                    },
+                    {
+                        icon: '🎂',
+                        title: 'Pesan Catering',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya ingin pesan catering untuk:\n- Tanggal: [isi tanggal]\n- Jumlah orang: [isi jumlah]\n- Menu pilihan: [isi menu]\n- Lokasi: [isi alamat]\n- Budget: [isi budget]\n\nBisa diskusi paketnya? Terima kasih!`
+                    },
+                    {
+                        icon: '🥤',
+                        title: 'Minuman & Dessert',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya suka minuman Anda:\n- Variasi minuman yang ada\n- Harga per gelas/botol\n- Bisa pesan grosir?\n- Ada promo apa hari ini?\n\nMohon informasinya ya. Terima kasih!`
+                    }
+                ],
+                otomotif: [
+                    {
+                        icon: '🔧',
+                        title: 'Service Motor',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya butuh service motor:\n- Merk/Type: [isi merk]\n- Keluhan: [isi masalah]\n- Estimasi biaya\n- Waktu pengerjaan\n\nBisa cek kondisi motor saya? Terima kasih!`
+                    },
+                    {
+                        icon: '🛵',
+                        title: 'Modifikasi Motor',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya ingin modifikasi motor:\n- Merk/Type: [isi merk]\n- Jenis modifikasi: [isi jenis]\n- Budget: [isi budget]\n- Referensi: [isi referensi]\n\nBisa konsultasi dulu? Terima kasih!`
+                    },
+                    {
+                        icon: '🛒',
+                        title: 'Sparepart & Aksesoris',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya cari sparepart/aksesoris:\n- Untuk motor: [isi merk/type]\n- Nama part: [isi nama]\n- Quantity: [isi jumlah]\n- Ada diskon?\n\nMohon cek ketersediaan ya. Terima kasih!`
+                    }
+                ],
+                peternakan: [
+                    {
+                        icon: '🐔',
+                        title: 'Informasi Ayam',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya tertarik dengan ayam Anda:\n- Jenis ayam yang tersedia\n- Umur dan berat\n- Harga per ekor/kg\n- Cara perawatan\n\nBisa lihat kondisi ayamnya? Terima kasih!`
+                    },
+                    {
+                        icon: '🥚',
+                        title: 'Telur Ayam',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya ingin beli telur ayam:\n- Quantity: [isi jumlah]\n- Jenis telur: [isi jenis]\n- Harga per kg/karton\n- Pengiriman ke: [isi alamat]\n\nMohon informasinya ya. Terima kasih!`
+                    },
+                    {
+                        icon: '📦',
+                        title: 'Pesanan Grosir',
+                        message: `Halo ${currentWhatsappName}!\n\nSaya ingin pesan grosir:\n- Jenis produk: [isi jenis]\n- Quantity: [isi jumlah]\n- Harga grosir\n- Pengiriman\n- Syarat pembelian\n\nBisa diskusi harga? Terima kasih!`
+                    }
+                ]
+            };
+
+            return templates[category] || [
+                {
+                    icon: '💬',
+                    title: 'Pesan Umum',
+                    message: `Halo ${currentWhatsappName}!\n\nSaya tertarik dengan produk/layanan Anda. Bisa beri informasi lebih detail tentang:\n- Produk yang tersedia\n- Harga\n- Cara pemesanan\n- Pengiriman\n\nTerima kasih!`
+                }
+            ];
+        }
+
+        function sendTemplateWhatsapp(templateIndex) {
+            const templates = getWhatsappTemplates(currentWhatsappCategory);
+            const template = templates[templateIndex];
+
+            if (template && currentWhatsappContact) {
+                const message = template.message;
+                const whatsappUrl = `https://wa.me/${currentWhatsappContact.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+                closeWhatsappModal();
+            }
+        }
+
+        function sendCustomWhatsapp() {
+            const message = document.getElementById('customMessage').value;
+
+            if (message && currentWhatsappContact) {
+                const whatsappUrl = `https://wa.me/${currentWhatsappContact.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+                closeWhatsappModal();
+            }
+        }
+
+        // Update message preview
+        document.addEventListener('input', function(event) {
+            if (event.target.id === 'customMessage') {
+                document.getElementById('messagePreview').textContent = event.target.value;
+            }
+        });
     </script>
 </body>
 </html>
